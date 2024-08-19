@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-function QuestionForm(props) {
+function QuestionForm({ onAddedQuestion }) {
   const [formData, setFormData] = useState({
     prompt: "",
     answer1: "",
@@ -9,6 +9,18 @@ function QuestionForm(props) {
     answer4: "",
     correctIndex: 0,
   });
+
+  // Ref to track if component is mounted
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    // Cleanup function to set it to false when unmounted
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   function handleChange(event) {
     setFormData({
@@ -20,6 +32,41 @@ function QuestionForm(props) {
   function handleSubmit(event) {
     event.preventDefault();
     console.log(formData);
+
+    const newQuestion = {
+      prompt: formData.prompt,
+      answers: [
+        formData.answer1,
+        formData.answer2,
+        formData.answer3,
+        formData.answer4, // Corrected the duplicate answer issue
+      ],
+      correctIndex: parseInt(formData.correctIndex), // Convert string to number
+    };
+
+    fetch("http://localhost:4000/questions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newQuestion),
+    })
+      .then((res) => res.json())
+      .then((addedQuestion) => {
+        if (isMounted.current) {
+          onAddedQuestion(addedQuestion);
+
+          // Clear the form fields
+          setFormData({
+            prompt: "",
+            answer1: "",
+            answer2: "",
+            answer3: "",
+            answer4: "",
+            correctIndex: 0,
+          });
+        }
+      });
   }
 
   return (
